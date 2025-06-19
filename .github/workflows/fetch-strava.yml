@@ -1,0 +1,28 @@
+name: Fetch Strava Activities
+
+on:
+  schedule:
+    - cron: '0 * * * *' # every hour
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch activities from Strava
+        env:
+          STRAVA_TOKEN: ${{ secrets.STRAVA_TOKEN }}
+        run: |
+          curl -s -G \
+            -H "Authorization: Bearer $STRAVA_TOKEN" \
+            "https://www.strava.com/api/v3/athlete/activities" \
+            > activities.json
+
+      - name: Commit updated activities.json
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add activities.json
+          git commit -m "chore: update Strava activities" || echo "No changes to commit"
+          git push
