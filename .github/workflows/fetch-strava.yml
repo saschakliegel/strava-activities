@@ -1,16 +1,25 @@
 name: Fetch Strava Activities
 
+# Give the checkout/Git steps permission to write back to the repo
+permissions:
+  contents: write
+
 on:
-  workflow_dispatch:   # ← allows you to click “Run workflow” manually
+  workflow_dispatch:
   schedule:
     - cron: '0 * * * *'
+
 
 
 jobs:
   update:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+  - uses: actions/checkout@v4
+    with:
+      persist-credentials: true    # ← makes sure GITHUB_TOKEN is cached
+      fetch-depth: 0
+  # …
 
       - name: Fetch activities from Strava
         env:
