@@ -1,4 +1,3 @@
-# .github/workflows/fetch-strava.yml
 name: Fetch Strava Activities
 
 # Give the checkout/Git steps permission to write back to the repo
@@ -24,15 +23,35 @@ jobs:
         env:
           STRAVA_TOKEN: ${{ secrets.STRAVA_TOKEN }}
         run: |
-          curl -s -G \
+          set -euxo pipefail
+
+          echo "→ Fetching Strava activities…"
+          HTTP_CODE=$(curl -s -w "%{http_code}" -G \
             -H "Authorization: Bearer $STRAVA_TOKEN" \
             "https://www.strava.com/api/v3/athlete/activities" \
-            > activities.json
+            -o activities.json)
 
-      - name: Commit updated activities.json
+          echo "→ HTTP response code: $HTTP_CODE"
+          if [ "$HTTP_CODE" -ne 200 ]; then
+            echo "⚠️ Strava API returned non-200 status. Dumping response:"
+            cat activities.json
+            exit 1
+          fi
+
+          COUNT=$(jq length activities.json)
+          echo "→ Retrieved $COUNT activities"
+          echo "→ Showing first 3 entries:"
+          jq '.[0:3]' activities.json
+
+      - name: Commit updated activities.json if changed
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@users.noreply.github.com"
-          git add activities.json
-          git commit -m "chore: update Strava activities"
-          git push
+
+          if git diff --quiet activities.json; then
+            echo "→ No changes in activities.json; skipping commit."
+          else
+            git add activities.json
+            git commit -m "chore: update Strava activities"
+            git push
+          fi
