@@ -1,8 +1,10 @@
 name: Fetch Strava Activities
 
 on:
+  workflow_dispatch:   # ← allows you to click “Run workflow” manually
   schedule:
-    - cron: '0 * * * *' # every hour
+    - cron: '0 * * * *'
+
 
 jobs:
   update:
