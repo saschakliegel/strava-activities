@@ -17,7 +17,7 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
         with:
-          persist-credentials: true    # ensures GITHUB_TOKEN is available
+          persist-credentials: true
           fetch-depth: 0
 
       - name: Refresh Strava token
@@ -35,12 +35,25 @@ jobs:
             > token.json
           echo "→ New token acquired."
 
+      - name: Extract access token
+        id: extract_token
+        run: |
+          echo "access_token=$(jq -r .access_token token.json)" >> $GITHUB_OUTPUT
+
       - name: Fetch activities from Strava
         env:
-          STRAVA_ACCESS_TOKEN: $(jq -r .access_token token.json)
+          ACCESS_TOKEN: ${{ steps.extract_token.outputs.access_token }}
         run: |
           echo "→ Fetching Strava activities…"
           curl -s -G \
-            -H "Authorization: Bearer $STRAVA_ACCESS_TOKEN" \
+            -H "Authorization: Bearer $ACCESS_TOKEN" \
             "https://www.strava.com/api/v3/athlete/activities" \
             > activities.json
+
+      - name: Commit activities.json
+        run: |
+          git config --global user.name 'github-actions'
+          git config --global user.email 'github-actions@github.com'
+          git add activities.json
+          git commit -m "Update activities" || echo "No changes to commit"
+          git push
