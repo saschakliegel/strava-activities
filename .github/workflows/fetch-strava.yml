@@ -34,15 +34,17 @@ jobs:
             > token.json
           echo "→ Token refreshed."
 
-      - name: Fetch activities from Strava
+      - name: Fetch up to 200 activities from Strava
+        env:
+          STRAVA_ACCESS_TOKEN: $(jq -r .access_token token.json)
         run: |
-          echo "→ Fetching Strava activities…"
-          ACCESS_TOKEN=$(jq -r .access_token token.json)
-          curl -s -G \
-            -H "Authorization: Bearer $ACCESS_TOKEN" \
-            "https://www.strava.com/api/v3/athlete/activities" \
-            > activities.json
-          echo "→ Activities downloaded."
+           echo "→ Fetching up to 200 activities from Strava…"
+           curl -s -G \
+              -H "Authorization: Bearer $STRAVA_ACCESS_TOKEN" \
+              --data-urlencode "per_page=200" \
+              "https://www.strava.com/api/v3/athlete/activities" \
+              > activities.json
+              echo "→ Activities downloaded."
 
       - name: Commit and push new activities
         run: |
