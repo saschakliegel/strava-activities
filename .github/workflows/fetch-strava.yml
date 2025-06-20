@@ -7,7 +7,7 @@ permissions:
 on:
   workflow_dispatch:
   schedule:
-    - cron: '*/10 * * * *' # every 10min
+    - cron: '0 * * * *'
 
 jobs:
   update:
@@ -16,7 +16,6 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
         with:
-          persist-credentials: true
           fetch-depth: 0
 
       - name: Refresh Strava token
@@ -32,24 +31,24 @@ jobs:
             -d grant_type=refresh_token \
             -d refresh_token=$STRAVA_REFRESH_TOKEN \
             > token.json
-          echo "→ Token refreshed."
+          echo "→ New token acquired."
 
-      - name: Fetch up to 200 activities from Strava
-        env:
-          STRAVA_ACCESS_TOKEN: $(jq -r .access_token token.json)
+      - name: Fetch activities from Strava
         run: |
-           echo "→ Fetching up to 200 activities from Strava…"
-           curl -s -G \
-              -H "Authorization: Bearer $STRAVA_ACCESS_TOKEN" \
-              --data-urlencode "per_page=200" \
-              "https://www.strava.com/api/v3/athlete/activities" \
-              > activities.json
-              echo "→ Activities downloaded."
+          echo "→ Fetching Strava activities…"
+          ACCESS_TOKEN=$(jq -r .access_token token.json)
+          curl -s -G \
+            -H "Authorization: Bearer $ACCESS_TOKEN" \
+            "https://www.strava.com/api/v3/athlete/activities" \
+            > activities.json
 
-      - name: Commit and push new activities
+          echo "→ Sample output:"
+          head activities.json
+
+      - name: Commit updated activities
         run: |
-          git config --global user.name "github-actions"
-          git config --global user.email "actions@github.com"
+          git config user.name github-actions
+          git config user.email github-actions@github.com
           git add activities.json
-          git commit -m "Update activities.json" || echo "No changes to commit"
+          git commit -m "⬆️ Update activities.json" || echo "No changes to commit"
           git push
